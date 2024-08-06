@@ -1,24 +1,23 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { v4 as uuidv4 } from 'uuid'; // Import uuid
+import { v4 as uuidv4 } from 'uuid'; 
 import app from '../../firebaseConfig';
 import { getDatabase, ref, set, onValue, remove } from 'firebase/database';
 
 export function MapboxExample() {
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
-  const markerRefs = useRef(new Map()); // Store map markers by ID
-  const dbRef = useRef(getDatabase(app)); // Memoize Firebase database reference
+  const markerRefs = useRef(new Map());
+  const dbRef = useRef(getDatabase(app));
 
-  // Function to fetch and display markers
   const fetchMarkers = useCallback(async () => {
     try {
       const markersRef = ref(dbRef.current, 'markers');
       onValue(markersRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          const markerIds = new Set(); // Track marker IDs to remove old markers
+          const markerIds = new Set();
           Object.keys(data).forEach(id => {
             markerIds.add(id);
             const marker = data[id];
@@ -27,7 +26,6 @@ export function MapboxExample() {
             }
           });
 
-          // Remove markers that are no longer in the database
           markerRefs.current.forEach((marker, id) => {
             if (!markerIds.has(id)) {
               marker.remove();
@@ -41,7 +39,6 @@ export function MapboxExample() {
     }
   }, []);
 
-  // Function to create a new marker
   const createMarker = useCallback((id, marker) => {
     const mapMarker = new mapboxgl.Marker({ draggable: true })
       .setLngLat([marker.location.lng, marker.location.lat])
@@ -65,30 +62,26 @@ export function MapboxExample() {
     });
 
     mapMarker.getElement().addEventListener('click', (event) => {
-      event.stopPropagation(); // Prevent click from propagating to map
+      event.stopPropagation(); 
       handleMarkerClick(id);
     });
   }, []);
 
-  // Function to handle marker click
   const handleMarkerClick = async (id) => {
     try {
-      await remove(ref(dbRef.current, `markers/${id}`)); // Remove marker from Firebase
+      await remove(ref(dbRef.current, `markers/${id}`)); 
 
-      // Fetch markers to update the map
       fetchMarkers();
     } catch (error) {
       console.error('Error removing marker:', error);
     }
   };
 
-  // Function to remove all markers
   const removeAllMarkers = async () => {
     try {
       const markersRef = ref(dbRef.current, 'markers');
-      await remove(markersRef); // Remove all markers from Firebase
+      await remove(markersRef);
 
-      // Remove markers from map
       markerRefs.current.forEach((marker) => marker.remove());
       markerRefs.current.clear();
 
@@ -101,25 +94,22 @@ export function MapboxExample() {
   useEffect(() => {
     mapboxgl.accessToken = 'pk.eyJ1IjoieXVyaWlpbXl0a2kiLCJhIjoiY2x6aWYwZ254MGVjcjJpczRseHh0dzZ6YiJ9.RDzVSMXJ-uA-xIFcmVT-7A';
 
-    if (mapRef.current) return; // Initialize map only once
+    if (mapRef.current) return;
 
     mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
-      center: [24.0316, 49.8429], // Lviv, Ukraine [lng, lat]
-      zoom: 9 // Starting zoom
+      center: [24.0316, 49.8429],
+      zoom: 9 
     });
 
-    // Fetch markers initially
     fetchMarkers();
 
-    // Add click event to add new markers
     mapRef.current.on('click', async (e) => {
-      // Ignore click if it is on an existing marker
       if (e.originalEvent.defaultPrevented) return;
 
-      const markerId = uuidv4(); // Generate a unique ID
+      const markerId = uuidv4(); 
       const markerDetails = {
-        id: markerId, // Add ID to marker details
+        id: markerId, 
         location: {
           lng: e.lngLat.lng,
           lat: e.lngLat.lat,
@@ -128,10 +118,10 @@ export function MapboxExample() {
       };
 
       try {
-        // Add marker to Firebase
+       
         await set(ref(dbRef.current, `markers/${markerId}`), markerDetails);
 
-        // Fetch markers to update the map
+        
         fetchMarkers();
 
         console.log('Marker added:', markerDetails);
@@ -139,7 +129,7 @@ export function MapboxExample() {
         console.error('Error adding marker:', error);
       }
     });
-  }, [fetchMarkers]); // Dependency array includes fetchMarkers
+  }, [fetchMarkers]);
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'absolute' }}>
